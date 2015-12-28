@@ -1,0 +1,7 @@
+Exception safety :: testing:
+  url: http://www.boost.org/community/exception_safety.html
+  chapter: 7 - Automated testing for exception-safety
+
+Exception safety :: guaranties:
+  url: http://www.stroustrup.com/3rd_safe.pdf
+  page: 22/34
