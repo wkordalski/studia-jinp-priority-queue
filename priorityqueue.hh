@@ -1,6 +1,7 @@
 #ifndef _JNP1_PRIORITYQUEUE_HH_
 #define _JNP1_PRIORITYQUEUE_HH_
 
+#include <cassert>
 #include <exception>
 #include <map>
 #include <memory>
@@ -253,14 +254,14 @@ public:
       rhs.sorted_by_value.begin(), rhs.sorted_by_value.end(),
       ValueKeyComparer());
   }
-  friend bool operator<=(const PriorityQueue<K,V> &lhs, const PriorityQueue<K,V> &rhs) {
-    return ! lhs > rhs;
-  }
   friend bool operator> (const PriorityQueue<K,V> &lhs, const PriorityQueue<K,V> &rhs) {
     return rhs < lhs;
   }
+  friend bool operator<=(const PriorityQueue<K,V> &lhs, const PriorityQueue<K,V> &rhs) {
+    return ! (lhs > rhs);
+  }
   friend bool operator>=(const PriorityQueue<K,V> &lhs, const PriorityQueue<K,V> &rhs) {
-    return ! lhs < rhs;
+    return ! (lhs < rhs);
   }
 };
 
