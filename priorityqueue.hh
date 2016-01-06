@@ -28,18 +28,16 @@ public:
 template<typename K, typename V>
 class PriorityQueue {
 public:
-  typedef size_t size_type;
   typedef K key_type;
   typedef V value_type;
 
 protected:
-  // UWAGA: przy changeValue i merge musimy sprawdzić ilość referencji,
-  // aby ewentualnie zrobić głębokie kopie obiektów
-  // nie możemy tego wykonać wcześniej ze względu na wymagane O(n)
-  // w konstruktorze kopiującym.
   using key_ptr = std::shared_ptr<K>;
   using value_ptr = std::shared_ptr<V>;
   using element = std::pair<key_ptr, value_ptr>;
+
+public:
+  using size_type = typename std::multiset<element>::size_type;
 
 protected:
   // Sorter classes
@@ -79,7 +77,7 @@ public:
   // Konstruktor bezparametrowy tworzący pustą kolejkę [O(1)]
   PriorityQueue() = default;
 
-  // Konstruktor kopiujący [O(queue.size
+  // Konstruktor kopiujący [O(queue.size())]
   // konstruktory kontenerów zapewniają silną gwarancję
   // jak coś się rzuci, to i tak PriorityQueue się nie utworzy
   // TODO: zweryfikować

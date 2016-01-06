@@ -10,6 +10,7 @@ int exceptions_on = 0;
 int delay_exceptions = 0;
 
 const int exceptions_all = 0xfffffff;
+const int exceptions_none = 0;
 
 
 class my_exception : public exception {
@@ -64,12 +65,174 @@ public:
     mad(7);
     return data < rhs.data;
   }
+
+  operator int () const noexcept(true) {
+    return data;
+  }
 };
 
 using mad_queue = PriorityQueue<mad_class, mad_class>;
 using mc = mad_class;
 
 int main() {
+  //
+  // Testing: default ctor
+  //
+  {
+    try {
+      exceptions_on = exceptions_all;
+      mad_queue q;
+      exceptions_on = exceptions_none;
+    } catch(const bad_alloc &e) {
+      exceptions_on = exceptions_none;
+      cout << "Allocation failed - exception possible." << endl;
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      cout << "There should be no exception here - but there is." << endl;
+    }
+    mad_queue *ptr = NULL;
+    try {
+      exceptions_on = exceptions_all;
+      ptr = new mad_queue();
+      delete ptr;
+      exceptions_on = exceptions_none;
+    } catch(const bad_alloc &e) {
+      exceptions_on = exceptions_none;
+      cout << "Allocation failed - exception possible." << endl;
+      if(ptr != NULL) {
+        cout << "But pointer assigned to not-null value." << endl;
+      }
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      cout << "There should be no exception here - but there is." << endl;
+    }
+  }
+  //
+  // Testing: copying ctor
+  //
+  {
+    mad_queue q;
+    q.insert(mc(1), mc(100));
+    try {
+      exceptions_on = exceptions_all;
+      mad_queue r = q;
+      exceptions_on = exceptions_none;
+      if(r.size() != 1) {
+        cout << "Copying not performed correctly." << endl;
+      } else {
+        if(r.minKey() == 1 && r.minValue() == 100) {
+          // OK
+        } else {
+          cout << "Copying not performed correctly." << endl;
+        }
+      }
+    } catch(const bad_alloc &e) {
+      exceptions_on = exceptions_none;
+      cout << "Allocation failed - exception possible." << endl;
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      cout << "There should be no exception." << endl;
+    }
+  }
+  //
+  // Testing: move ctor
+  //
+  {
+    mad_queue q;
+    q.insert(mc(1), mc(100));
+    try {
+      exceptions_on = exceptions_all;
+      mad_queue r = move(q);
+      exceptions_on = exceptions_none;
+      if(r.size() != 1) {
+        cout << "Moving not performed correctly." << endl;
+      } else {
+        if(r.minKey() == 1 && r.minValue() == 100) {
+          // OK
+        } else {
+          cout << "Moving not performed correctly." << endl;
+        }
+      }
+    } catch(const bad_alloc &e) {
+      exceptions_on = exceptions_none;
+      cout << "Allocation failed - exception possible." << endl;
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      cout << "There should be no exception." << endl;
+    }
+  }
+  //
+  // Testing: copying operator
+  //
+  {
+    mad_queue q;
+    q.insert(mc(1), mc(100));
+    mad_queue r;
+    r.insert(mc(2), mc(200));
+    r.insert(mc(3), mc(300));
+    try {
+      exceptions_on = exceptions_all;
+      r = q;
+      exceptions_on = exceptions_none;
+      if(r.size() != 1) {
+        cout << "Copying not performed correctly." << endl;
+      } else {
+        if(r.minKey() == 1 && r.minValue() == 100) {
+          // OK
+        } else {
+          cout << "Copying not performed correctly." << endl;
+        }
+      }
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      cout << "There should be no exception." << endl;
+      if(r.size() != 2) {
+        cout << "No rollback after exception." << endl;
+      } else {
+        if(r.minKey() == 2 && r.minValue() == 200 && r.maxKey() == 3 && r.maxValue() == 300) {
+          // OK
+        } else {
+          cout << "Rollback not performed correctly." << endl;
+        }
+      }
+    }
+  }
+  //
+  // Testing: move operator
+  //
+  {
+    mad_queue q;
+    q.insert(mc(1), mc(100));
+    mad_queue r;
+    r.insert(mc(2), mc(200));
+    r.insert(mc(3), mc(300));
+    try {
+      exceptions_on = exceptions_all;
+      r = move(q);
+      exceptions_on = exceptions_none;
+      if(r.size() != 1) {
+        cout << "Moving not performed correctly." << endl;
+      } else {
+        if(r.minKey() == 1 && r.minValue() == 100) {
+          // OK
+        } else {
+          cout << "Moving not performed correctly." << endl;
+        }
+      }
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      cout << "There should be no exception." << endl;
+      if(r.size() != 2) {
+        cout << "No rollback after exception." << endl;
+      } else {
+        if(r.minKey() == 2 && r.minValue() == 200 && r.maxKey() == 3 && r.maxValue() == 300) {
+          // OK
+        } else {
+          cout << "Rollback not performed correctly." << endl;
+        }
+      }
+    }
+  }
   //
   // Testing: deleteMin()
   //
@@ -111,6 +274,34 @@ int main() {
       } else {
         cout << "Missing rollback after exception." << endl;
       }
+    }
+  }
+  //
+  // Testing: operator <
+  //
+  {
+    mad_queue q;
+    q.insert(mc(1), mc(100));
+    q.insert(mc(3), mc(200));
+    mad_queue r;
+    r.insert(mc(1), mc(100));
+    r.insert(mc(3), mc(300));
+    if(q < r) {
+      // OK
+    } else {
+      cout << "Comparing is not done correctly!" << endl;
+    }
+    exceptions_on = exceptions_all;
+    try {
+      if(q < r) {
+        cout << "Lost some exception!" << endl;
+      } else {
+        cout << "Lost some exception and result is incorrect!" << endl;
+      }
+      exceptions_on = exceptions_none;
+    } catch(...) {
+      exceptions_on = exceptions_none;
+      // OK - operator < get const objects so no modification possible
     }
   }
 
