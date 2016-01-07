@@ -22,8 +22,9 @@ test_fb_2: test_fb_2.cc priorityqueue.hh
 	$(CXX) $(FLAGS) test_fb_2.cc -o test_fb_2
 
 valgrind:
-	valgrind $(VALGRIND_OPTS) ./test
-	valgrind $(VALGRIND_OPTS) ./test_exceptions
+	# valgrind $(VALGRIND_OPTS) ./test
+	# valgrind $(VALGRIND_OPTS) ./test_exceptions
+	valgrind $(VALGRIND_OPTS) ./test_fb_2
 
 clean:
 	rm -f $(TESTS)

@@ -7,7 +7,6 @@
 #include <memory>
 #include <set>
 
-
 class PriorityQueueEmptyException : public std::exception {
    public:
     PriorityQueueEmptyException() = default;
@@ -97,7 +96,6 @@ class PriorityQueue {
     }
 
    public:
-
     // Konstruktor bezparametrowy tworzący pustą kolejkę [O(1)]
     PriorityQueue() = default;
 
@@ -164,7 +162,7 @@ class PriorityQueue {
 
             tie(it2, al2) = sorted_by_key.insert(make_pair(k, value_map()));
 
-            tie(it3, al3) =  it2->second.insert(make_pair(v, element_set<>()));
+            tie(it3, al3) = it2->second.insert(make_pair(v, element_set<>()));
 
             it4 = it3->second.insert(pair_by_value);
             al4 = true;
@@ -177,7 +175,7 @@ class PriorityQueue {
             if (al3) it2->second.erase(it3);
             if (al2) sorted_by_key.erase(it2);
             if (al1) sorted_by_value.erase(it1);
-          throw;
+            throw;
         }
     }
 
@@ -260,62 +258,62 @@ class PriorityQueue {
     // par
     // o kluczu key, zmienia wartość w dowolnie wybranej parze o podanym kluczu
     void changeValue(const K& key, const V& value) {
-      using std::make_pair;
-      using std::tie;
+        using std::make_pair;
+        using std::tie;
 
-      key_ptr k;
-      value_ptr v;
-      tie(k, v) = find_element(key, value);
+        key_ptr k;
+        value_ptr v;
+        tie(k, v) = find_element(key, value);
 
-      auto kit = sorted_by_key.find(k);
-      if(kit == sorted_by_key.end()) throw PriorityQueueNotFoundException();
+        auto kit = sorted_by_key.find(k);
+        if (kit == sorted_by_key.end()) throw PriorityQueueNotFoundException();
 
-      value_ptr old = kit->second.begin()->first;
+        value_ptr old = kit->second.begin()->first;
 
-      auto itr_e1 = sorted_by_value.find(make_pair(k, old));
-      auto itr_e2 = all_values.find(old);
-      auto vit = kit->second.find(old);
-      assert(vit != kit->second.end());
+        auto itr_e1 = sorted_by_value.find(make_pair(k, old));
+        auto itr_e2 = all_values.find(old);
+        auto vit = kit->second.find(old);
+        assert(vit != kit->second.end());
 
-      // Wstawmy najpierw nową parę...
+        // Wstawmy najpierw nową parę...
 
-      auto pair_by_value = make_pair(k, v);
+        auto pair_by_value = make_pair(k, v);
 
-      // Iterators
-      typename elements::iterator it1;
-      typename key_map::iterator it2;
-      typename value_map::iterator it3;
-      typename element_set<>::iterator it4;
-      typename value_set::iterator it5;
-      // If we have to remove them on fail.
-      bool al1 = false, al2 = false, al3 = false, al4 = false, al5 = false;
-      // Polegamy na silnej gwarancji kontenerów STL (map, set)
-      try {
-          it1 = sorted_by_value.insert(pair_by_value);
-          al1 = true;
+        // Iterators
+        typename elements::iterator it1;
+        typename key_map::iterator it2;
+        typename value_map::iterator it3;
+        typename element_set<>::iterator it4;
+        typename value_set::iterator it5;
+        // If we have to remove them on fail.
+        bool al1 = false, al2 = false, al3 = false, al4 = false, al5 = false;
+        // Polegamy na silnej gwarancji kontenerów STL (map, set)
+        try {
+            it1 = sorted_by_value.insert(pair_by_value);
+            al1 = true;
 
-          tie(it2, al2) = sorted_by_key.insert(make_pair(k, value_map()));
+            tie(it2, al2) = sorted_by_key.insert(make_pair(k, value_map()));
 
-          tie(it3, al3) = it2->second.insert(make_pair(v, element_set<>()));
+            tie(it3, al3) = it2->second.insert(make_pair(v, element_set<>()));
 
-          it4 = it3->second.insert(pair_by_value);
-          al4 = true;
+            it4 = it3->second.insert(pair_by_value);
+            al4 = true;
 
-          it5 = all_values.insert(v);
-          al5 = true;
-      } catch (...) {
-          if (al5) all_values.erase(it5);
-          if (al4) it3->second.erase(it4);
-          if (al3) it2->second.erase(it3);
-          if (al2) sorted_by_key.erase(it2);
-          if (al1) sorted_by_value.erase(it1);
-          throw;
-      }
-      // A teraz usuńmy starą
-      sorted_by_value.erase(itr_e1);
-      all_values.erase(itr_e2);
-      vit->second.erase(vit->second.begin());
-      if(vit->second.size() == 0) kit->second.erase(vit);
+            it5 = all_values.insert(v);
+            al5 = true;
+        } catch (...) {
+            if (al5) all_values.erase(it5);
+            if (al4) it3->second.erase(it4);
+            if (al3) it2->second.erase(it3);
+            if (al2) sorted_by_key.erase(it2);
+            if (al1) sorted_by_value.erase(it1);
+            throw;
+        }
+        // A teraz usuńmy starą
+        sorted_by_value.erase(itr_e1);
+        all_values.erase(itr_e2);
+        vit->second.erase(vit->second.begin());
+        if (vit->second.size() == 0) kit->second.erase(vit);
     }
 
     // Metoda scalająca zawartość kolejki z podaną kolejką queue; ta operacja
@@ -323,26 +321,26 @@ class PriorityQueue {
     // wszystkie elementy z kolejki queue i wstawia je do kolejki *this
     // [O(size() + queue.size() * log (queue.size() + size()))]
     void merge(PriorityQueue<K, V>& queue) {
-      using std::tie;
+        using std::tie;
 
-      if (this == &queue) return;
+        if (this == &queue) return;
 
-      PriorityQueue<K, V> merged_queue = *this;
+        PriorityQueue<K, V> merged_queue = *this;
 
-      for (element e : queue.sorted_by_value) {
-          key_ptr k;
-          value_ptr v;
-          tie(k, v) = merged_queue.find_element(e.first, e.second);
+        for (element e : queue.sorted_by_value) {
+            key_ptr k;
+            value_ptr v;
+            tie(k, v) = merged_queue.find_element(e.first, e.second);
 
-          merged_queue.sorted_by_value.insert(e);
-          merged_queue.sorted_by_key[k][v].insert(e);
-          merged_queue.all_values.insert(v);
-      }
-      queue.sorted_by_value.clear();
-      queue.sorted_by_key.clear();
-      queue.all_values.clear();
+            merged_queue.sorted_by_value.insert(e);
+            merged_queue.sorted_by_key[k][v].insert(e);
+            merged_queue.all_values.insert(v);
+        }
+        queue.sorted_by_value.clear();
+        queue.sorted_by_key.clear();
+        queue.all_values.clear();
 
-      this->swap(merged_queue);
+        this->swap(merged_queue);
     }
 
     // Metoda zamieniającą zawartość kolejki z podaną kolejką queue (tak jak
