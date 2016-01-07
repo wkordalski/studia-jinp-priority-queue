@@ -162,14 +162,15 @@ class PriorityQueue {
 
         auto pair_by_value = make_pair(k, v);
 
-        // Iterators
+        // Iteratory
         typename elements::iterator it1;
         typename key_map::iterator it2;
         typename value_map::iterator it3;
         typename element_set<>::iterator it4;
         typename value_set::iterator it5;
-        // If we have to remove them on fail.
+
         bool al1 = false, al2 = false, al3 = false, al4 = false, al5 = false;
+
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
             it1 = sorted_by_value.insert(pair_by_value);
@@ -314,22 +315,18 @@ class PriorityQueue {
     void merge(PriorityQueue<K, V>& queue) {
         if (this == &queue) return;
 
-        try {
-            PriorityQueue<K, V> merged_queue = *this;
-            for (element e : queue.sorted_by_value) {
-                key_ptr k = e.first;
-                value_ptr v = e.second;
+        PriorityQueue<K, V> merged_queue = *this;
+        for (element e : queue.sorted_by_value) {
+            key_ptr k = e.first;
+            value_ptr v = e.second;
 
-                merged_queue.sorted_by_value.insert(e);
-                merged_queue.sorted_by_key[k][v].insert(e);
-            }
-            queue.sorted_by_value.clear();
-            queue.sorted_by_key.clear();
-
-            this->swap(merged_queue);
-        } catch (...) {
-            throw;
+            merged_queue.sorted_by_value.insert(e);
+            merged_queue.sorted_by_key[k][v].insert(e);
         }
+        queue.sorted_by_value.clear();
+        queue.sorted_by_key.clear();
+
+        this->swap(merged_queue);
     }
 
     // Metoda zamieniającą zawartość kolejki z podaną kolejką queue (tak jak
