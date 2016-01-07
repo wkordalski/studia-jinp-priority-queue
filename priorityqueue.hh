@@ -82,8 +82,10 @@ class PriorityQueue {
    protected:
     // sortowanie po wartości, a potem po kluczu
     std::multiset<element, ValueKeyComparer> sorted_by_value;
-    // sortowanie po kluczu, a potem po wartości
-    std::map<key_ptr, std::multiset<value_ptr, ValueComparer>, KeyComparer>
+    // sortowanie po kluczu, a potem po wartości, a na koniec po adresach (domyślnie)
+    std::map<key_ptr,
+						 std::map<value_ptr, std::multiset<element>, ValueComparer>,
+						 KeyComparer>
         sorted_by_key;
 
    public:
@@ -138,17 +140,30 @@ class PriorityQueue {
         auto v = std::make_shared<V>(value);
 
         auto pair_by_value = make_pair(k, v);
+
+				// Iterators
+				decltype(sorted_by_value)::iterator it1;
+				decltype(sorted_by_key)::iterator it2;
+				std::map<value_ptr, std::multiset<element>, ValueComparer>::iterator it3;
+				std::multiset<element>::iterator it4;
+				// If we have to remove them on fail.
+				bool al1 = false, al2 = false, al3 = false, al4 = false;
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
-            sorted_by_value.insert(pair_by_value);
-            try {
-                sorted_by_key[k].insert(v);
-            } catch (...) {
-                // Usuwamy poprzednio dodaną parę i rzucamy dalej
-                sorted_by_value.erase(pair_by_value);
-                throw;
-            }
+            it1 = sorted_by_value.insert(pair_by_value);
+						al1 = true;
+
+						std::tie(it2, al2) = sorted_by_key.try_emplace(k);
+
+						std::tie(it3, al3) = it2->second.try_emplace(v);
+						
+						it4 = it3->insert(pair_by_value);
+						al4 = true;
         } catch (...) {
+						if(al4) it3->second.erase(it4);
+						if(al3) it2->second.erase(it3);
+						if(al2) sorted_by_key.erase(it2);
+						if(al1) sorted_by_value.erase(it1);
             throw PriorityQueueInsertionException();
         }
     }
@@ -194,10 +209,14 @@ class PriorityQueue {
         assert(kit != sorted_by_key.end());
         auto vit =
             kit->second.find(e.second);  // może rzucać operator porównania
-        assert(vit != kit->second.end());
+				assert(vit != kit->second.end());
+				auto ait =											 // nie rzuca
+						vit->second.find(e);
+        assert(ait != vit->second.end());
 
         // Modyfikacje
-        kit->second.erase(vit);                             // noexcept
+				vit->second.erase(ait);															// noexcept
+				if(vit->second.empty()) kit->second.erase(vit);     // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);  // noexcept
         sorted_by_value.erase(sorted_by_value.begin());     // noexcept
     }
@@ -211,9 +230,13 @@ class PriorityQueue {
         auto vit =
             kit->second.find(e.second);  // może rzucać operator porównania
         assert(vit != kit->second.end());
+				auto ait =											 // nie rzuca
+						vit->second.find(e);
+        assert(ait != vit->second.end());
 
         // Modyfikacje
-        kit->second.erase(vit);                              // noexcept
+				vit->second.erase(ait);															// noexcept
+				if (vit->second.empty()) kit->second.erase(vit);     // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);   // noexcept
         sorted_by_value.erase(prev(sorted_by_value.end()));  // noexcept
     }
@@ -228,6 +251,7 @@ class PriorityQueue {
     // sprawdza, czy do danej pary odwołuje się tylko jeden zestaw wskaźników
     // inaczej musi zaalokować nową parę (by modyfikacja nie dosięgła innych
     // par)
+		// TODO: zportować do nowych struktur danych
     void changeValue(const K& key, const V& value) {
         auto k = std::make_shared<K>(key);
 
@@ -266,6 +290,7 @@ class PriorityQueue {
     // usuwa
     // wszystkie elementy z kolejki queue i wstawia je do kolejki *this
     // [O(size() + queue.size() * log (queue.size() + size()))]
+		// TODO: sportować do nowych struktur danych
     void merge(PriorityQueue<K, V>& queue) {
         if (this == &queue) return;
 
@@ -331,10 +356,7 @@ class PriorityQueue {
     }
     friend bool operator<(const PriorityQueue<K, V>& lhs,
                           const PriorityQueue<K, V>& rhs) {
-        return std::lexicographical_compare(
-            lhs.sorted_by_value.begin(), lhs.sorted_by_value.end(),
-            rhs.sorted_by_value.begin(), rhs.sorted_by_value.end(),
-            ValueKeyComparer());
+        return lhs.sorted_by_value < rhs.sorted_by_value;
     }
     friend bool operator>(const PriorityQueue<K, V>& lhs,
                           const PriorityQueue<K, V>& rhs) {
