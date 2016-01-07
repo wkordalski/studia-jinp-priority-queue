@@ -9,6 +9,11 @@
 
 // TODO: Add some messages in ctors to exceptions objects
 
+// Założenia:
+// 1. Nie obsługujemy wyjątku std::bad_alloc, który może zostać rzucony przez
+// std::make_shared()
+// 2.
+
 class PriorityQueueEmptyException : public std::exception {
    public:
     PriorityQueueEmptyException() = default;
@@ -22,6 +27,14 @@ class PriorityQueueNotFoundException : public std::exception {
     PriorityQueueNotFoundException() = default;
     virtual const char* what() const noexcept(true) {
         return "Could not find element in priority queue with specified key.";
+    }
+};
+
+class PriorityQueueInsertionException : public std::exception {
+   public:
+    PriorityQueueInsertionException() = default;
+    virtual const char* what() const noexcept(true) {
+        return "Could not insert key-value pair";
     }
 };
 
@@ -85,7 +98,7 @@ class PriorityQueue {
     PriorityQueue(const PriorityQueue<K, V>& queue) = default;
 
     // Konstruktor przenoszący [O(1)]
-    PriorityQueue(PriorityQueue<K, V>&& queue) noexcept(true)
+    PriorityQueue(PriorityQueue<K, V>&& queue) noexcept
         : sorted_by_value(std::move(queue.sorted_by_value)),
           sorted_by_key(std::move(queue.sorted_by_key)) {}
 
@@ -119,25 +132,23 @@ class PriorityQueue {
     // Metoda wstawiająca do kolejki parę o kluczu key i wartości value
     // [O(log size())] (dopuszczamy możliwość występowania w kolejce wielu
     // par o tym samym kluczu)
-    // TODO: Przetestowac dla roznych wariantow
     void insert(const K& key, const V& value) {
-        // TODO: Czy powinnismy lapac bad_alloc rzucany przez make_shared?
-        // patrz:
-        // http://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared#Exceptions
-        // (dalej make_pair() jest bezpieczne, bo polega na bezpieczenstwie k,v)
         auto k = std::make_shared<K>(key);
         auto v = std::make_shared<V>(value);
 
-        // Polegamy na silnej gwarancji kontenerów STL (map, multiset)
+        auto pair_by_value = make_pair(k, v);
+        // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
-            sorted_by_value.insert(make_pair(k, v));
+            sorted_by_value.insert(pair_by_value);
             try {
                 sorted_by_key[k].insert(v);
             } catch (...) {
+                // Usuwamy poprzednio dodaną parę i rzucamy dalej
+                sorted_by_value.erase(pair_by_value);
                 throw;
             }
         } catch (...) {
-            throw("Could not insert key-value pair");
+            throw PriorityQueueInsertionException();
         }
     }
 
@@ -229,8 +240,20 @@ class PriorityQueue {
         sorted_by_value.erase(make_pair(k, ov));
 
         auto nv = std::make_shared<V>(value);
-        es_it->second.insert(nv);
-        sorted_by_value.insert(make_pair(k, nv));
+
+        // Polegamy na silnej gwarancji kontenerów STL (map, set)
+        try {
+            es_it->second.insert(nv);
+            try {
+                sorted_by_value.insert(make_pair(k, nv));
+            } catch (...) {
+                // Usuwamy poprzednio dodaną parę i rzucamy dalej
+                es_it->second.insert(nv);
+                throw;
+            }
+        } catch (...) {
+            throw PriorityQueueInsertionException();
+        }
     }
 
     // Metoda scalająca zawartość kolejki z podaną kolejką queue; ta operacja

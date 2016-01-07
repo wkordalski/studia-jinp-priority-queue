@@ -13,6 +13,7 @@ class WrongKeyValueException : public std::exception {
 // Rzuca wyjatek przez copy ctor
 struct ThrowingKey {
     int val;
+    ThrowingKey() = default;
     ThrowingKey(int val) : val(val){};
     ThrowingKey(const ThrowingKey& other) {
         std::cerr << "Copy constructor" << std::endl;
@@ -30,7 +31,13 @@ struct ThrowingValue : ThrowingKey {
 
 struct NonThrowingKey {
     int val;
+    NonThrowingKey() = default;
     NonThrowingKey(int val) : val(val){};
+    NonThrowingKey(const NonThrowingKey& other) {
+        std::cerr << "Non-throwing copy constructor" << std::endl;
+        this->val = other.val;
+    }
+
     friend bool operator<(const NonThrowingKey& v1, const NonThrowingKey& v2) {
         return v1.val < v1.val;
     }
@@ -41,7 +48,6 @@ struct NonThrowingValue : NonThrowingKey {
 };
 
 int main(int argc, char* argv[]) {
-
     // insert() tests
     NonThrowingKey keyNon(42);
     NonThrowingValue valNon(42);
@@ -57,6 +63,7 @@ int main(int argc, char* argv[]) {
     try {
         // std::set<ThrowingKey> throw_checker;
         // throw_checker.insert(key); // Test dzialania w kont. STL (ma rzucac)
+        // throw_checker.erase(key);
 
         // qMixed1.insert(keyNon, val);  // Ma rzucac
         // qMixed2.insert(key, valNon);  // Ma rzucac
