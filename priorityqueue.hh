@@ -374,7 +374,10 @@ class PriorityQueue {
     }
     friend bool operator<(const PriorityQueue<K, V>& lhs,
                           const PriorityQueue<K, V>& rhs) {
-        return lhs.sorted_by_value < rhs.sorted_by_value;
+        return std::lexicographical_compare(
+            lhs.sorted_by_value.begin(), lhs.sorted_by_value.end(),
+            rhs.sorted_by_value.begin(), rhs.sorted_by_value.end(),
+            ValueKeyComparer());
     }
     friend bool operator>(const PriorityQueue<K, V>& lhs,
                           const PriorityQueue<K, V>& rhs) {
