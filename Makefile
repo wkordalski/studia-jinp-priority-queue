@@ -9,10 +9,10 @@ VALGRIND_OPTS=--leak-check=full --show-leak-kinds=all --suppressions=valgrind.su
 
 tests: $(TESTS)
 
-test:
+test: priorityqueue.hh
 	$(CXX) $(FLAGS) test.cc -o test
 
-test_exceptions:
+test_exceptions:priorityqueue.hh
 	$(CXX) $(FLAGS) test_exceptions.cc -o test_exceptions
 
 test_fb_1: test_fb_1.cc priorityqueue.hh

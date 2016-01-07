@@ -78,7 +78,7 @@ class PriorityQueue {
     using elements = element_set<ValueKeyComparer>;
     using value_map = std::map<value_ptr, element_set<>, ValueComparer>;
     using key_map = std::map<key_ptr, value_map, KeyComparer>;
-    using value_set = std::set<value_ptr, ValueComparer>;
+    using value_set = std::multiset<value_ptr, ValueComparer>;
 
     // sortowanie po wartości, a potem po kluczu
     elements sorted_by_value;
@@ -161,6 +161,7 @@ class PriorityQueue {
     // [O(log size())] (dopuszczamy możliwość występowania w kolejce wielu
     // par o tym samym kluczu)
     void insert(const K& key, const V& value) {
+        using namespace std;
         key_ptr k;
         value_ptr v;
         std::tie(k, v) = find_element(key, value);
@@ -189,7 +190,8 @@ class PriorityQueue {
             it4 = it3->second.insert(pair_by_value);
             al4 = true;
 
-            std::tie(it5, al5) = all_values.insert(v);
+            it5 = all_values.insert(v);
+            al5 = true;
         } catch (...) {
             if (al5) all_values.erase(it5);
             if (al4) it3->second.erase(it4);
@@ -254,10 +256,7 @@ class PriorityQueue {
         if (vit->second.empty()) kit->second.erase(vit);    // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);  // noexcept
         sorted_by_value.erase(sorted_by_value.begin());     // noexcept
-        // porównuję wskaźniki - noexcept
-        if(sorted_by_value.size() == 0 || sorted_by_value.begin()->second != v) {
-          all_values.erase(bit);
-        }
+        all_values.erase(bit);
     }
 
     void deleteMax() {
@@ -282,9 +281,7 @@ class PriorityQueue {
         if (vit->second.empty()) kit->second.erase(vit);     // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);   // noexcept
         sorted_by_value.erase(prev(sorted_by_value.end()));  // noexcept
-        if(sorted_by_value.size()==0 || prev(sorted_by_value.begin())->second != v) {
-          all_values.erase(bit);
-        }
+        all_values.erase(bit);
     }
 
     // Metoda zmieniająca dotychczasową wartość przypisaną kluczowi key na nową
@@ -298,31 +295,62 @@ class PriorityQueue {
     // inaczej musi zaalokować nową parę (by modyfikacja nie dosięgła innych
     // par)
     void changeValue(const K& key, const V& value) {
-        auto k = std::make_shared<K>(key);
+      using namespace std;
+      key_ptr k;
+      value_ptr v;
+      std::tie(k, v) = find_element(key, value);
 
-        auto es_it = sorted_by_key.find(k);
-        if (es_it == sorted_by_key.end())
-            throw PriorityQueueNotFoundException();
+      auto kit = sorted_by_key.find(k);
+      if(kit == sorted_by_key.end()) throw PriorityQueueNotFoundException();
 
-        assert(!es_it->second.empty());
-        auto ov = *(es_it->second.begin());
+      value_ptr old = kit->second.begin()->first;
 
-        auto deleted_pair = make_pair(k, ov.first);
+      auto itr_e1 = sorted_by_value.find(make_pair(k, old));
+      auto itr_e2 = all_values.find(old);
+      auto vit = kit->second.find(old);
+      assert(vit != kit->second.end());
 
-        es_it->second.erase(es_it->second.begin());
-        sorted_by_value.erase(deleted_pair);
+      // Wstawmy najpierw nową parę...
 
-        auto nv = std::make_shared<V>(value);
+      auto pair_by_value = make_pair(k, v);
 
-        try {
-            // Polegamy na silnej gwarancji kontenerów STL (map, set)
-            insert(key, value);
-        } catch (...) {
-            // Dodajemy usunięte wcześniej elementy
-            es_it->second.insert(ov);
-            sorted_by_value.insert(deleted_pair);
-            throw;
-        }
+      // Iterators
+      typename elements::iterator it1;
+      typename key_map::iterator it2;
+      typename value_map::iterator it3;
+      typename element_set<>::iterator it4;
+      typename value_set::iterator it5;
+      // If we have to remove them on fail.
+      bool al1 = false, al2 = false, al3 = false, al4 = false, al5 = false;
+      // Polegamy na silnej gwarancji kontenerów STL (map, set)
+      try {
+          it1 = sorted_by_value.insert(pair_by_value);
+          al1 = true;
+
+          std::tie(it2, al2) =
+              sorted_by_key.insert(std::make_pair(k, value_map()));
+
+          std::tie(it3, al3) =
+              it2->second.insert(std::make_pair(v, element_set<>()));
+
+          it4 = it3->second.insert(pair_by_value);
+          al4 = true;
+
+          it5 = all_values.insert(v);
+          al5 = true;
+      } catch (...) {
+          if (al5) all_values.erase(it5);
+          if (al4) it3->second.erase(it4);
+          if (al3) it2->second.erase(it3);
+          if (al2) sorted_by_key.erase(it2);
+          if (al1) sorted_by_value.erase(it1);
+          throw;
+      }
+      // A teraz usuńmy starą
+      sorted_by_value.erase(itr_e1);
+      all_values.erase(itr_e2);
+      vit->second.erase(vit->second.begin());
+      if(vit->second.size() == 0) kit->second.erase(vit);
     }
 
     // Metoda scalająca zawartość kolejki z podaną kolejką queue; ta operacja
