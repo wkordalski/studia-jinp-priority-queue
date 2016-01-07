@@ -105,8 +105,6 @@ Wymagania niefunkcjonalne i wskazówki:
 * Konstruktor domyślny, kopiujący i przenoszący w kontenerach STL zapewniają
   silną gwarancję.
 
-* Operator przypisania zapewnia podstawową gwarancję, a w zadaniu wymagamy
-  silnej!
 
 * Wszelkie metody w standardowych kontenerach zadeklarowane jako const dają
   silną gwarancję.
