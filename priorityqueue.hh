@@ -93,15 +93,15 @@ class PriorityQueue {
       using namespace std;
       // w razie czego usuwanie polega na nic nie robieniu,
       // bo nie posiadamy key i value na własność
-      auto k = key_ptr(&key, [](K *k) {});
-      auto v = value_ptr(&value, [](V *v) {});
+      auto k = make_shared<K>(key);
+      auto v = make_shared<V>(value);
 
       // jeśli rzucą wyjątki, to trudno...
       auto kit = sorted_by_key.find(k);
       auto vit = all_values.find(v);
 
-      auto kk = (kit == sorted_by_key.end())?(make_shared<K>(key)):(kit->first);
-      auto vv = (vit == all_values.end())?(make_shared<V>(value)):(*vit);
+      auto kk = (kit == sorted_by_key.end())?k:(kit->first);
+      auto vv = (vit == all_values.end())?v:(*vit);
 
       return make_pair(kk, vv);
     }
@@ -167,8 +167,9 @@ class PriorityQueue {
         typename key_map::iterator it2;
         typename value_map::iterator it3;
         typename element_set<>::iterator it4;
+        typename value_set::iterator it5;
         // If we have to remove them on fail.
-        bool al1 = false, al2 = false, al3 = false, al4 = false;
+        bool al1 = false, al2 = false, al3 = false, al4 = false, al5 = false;
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
             it1 = sorted_by_value.insert(pair_by_value);
@@ -182,7 +183,10 @@ class PriorityQueue {
 
             it4 = it3->second.insert(pair_by_value);
             al4 = true;
+
+            std::tie(it5, al5) = all_values.insert(v);
         } catch (...) {
+            if (al5) all_values.erase(it5);
             if (al4) it3->second.erase(it4);
             if (al3) it2->second.erase(it3);
             if (al2) sorted_by_key.erase(it2);
