@@ -90,20 +90,20 @@ class PriorityQueue {
 
    protected:
     element find_element(const K& key, const V& value) {
-      using namespace std;
-      // w razie czego usuwanie polega na nic nie robieniu,
-      // bo nie posiadamy key i value na własność
-      auto k = make_shared<K>(key);
-      auto v = make_shared<V>(value);
+        using namespace std;
+        // w razie czego usuwanie polega na nic nie robieniu,
+        // bo nie posiadamy key i value na własność
+        auto k = make_shared<K>(key);
+        auto v = make_shared<V>(value);
 
-      // jeśli rzucą wyjątki, to trudno...
-      auto kit = sorted_by_key.find(k);
-      auto vit = all_values.find(v);
+        // jeśli rzucą wyjątki, to trudno...
+        auto kit = sorted_by_key.find(k);
+        auto vit = all_values.find(v);
 
-      auto kk = (kit == sorted_by_key.end())?k:(kit->first);
-      auto vv = (vit == all_values.end())?v:(*vit);
+        auto kk = (kit == sorted_by_key.end()) ? k : (kit->first);
+        auto vv = (vit == all_values.end()) ? v : (*vit);
 
-      return make_pair(kk, vv);
+        return make_pair(kk, vv);
     }
 
    public:
@@ -279,9 +279,7 @@ class PriorityQueue {
     // sprawdza, czy do danej pary odwołuje się tylko jeden zestaw wskaźników
     // inaczej musi zaalokować nową parę (by modyfikacja nie dosięgła innych
     // par)
-    // TODO: zportować do nowych struktur danych
     void changeValue(const K& key, const V& value) {
-        /*
         auto k = std::make_shared<K>(key);
 
         auto es_it = sorted_by_key.find(k);
@@ -289,37 +287,24 @@ class PriorityQueue {
             throw PriorityQueueNotFoundException();
 
         assert(!es_it->second.empty());
-        // auto ov = *(es_it->second.begin());
         auto ov = *(es_it->second.begin());
-        // std::shared_ptr<V> ov = es_it->second.begin();
-        auto deleted_pair = make_pair(k, std::make_shared<V>(ov));
 
-        if (sorted_by_value.find(deleted_pair) == sorted_by_value.end())
-            throw PriorityQueueNotFoundException();
+        auto deleted_pair = make_pair(k, ov.first);
 
         es_it->second.erase(es_it->second.begin());
-        // sorted_by_value.erase(deleted_pair);
+        sorted_by_value.erase(deleted_pair);
 
         auto nv = std::make_shared<V>(value);
 
-        // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
-            // es_it->second.insert(nv);
-            try {
-                sorted_by_value.insert(make_pair(k, nv));
-            } catch (...) {
-                // Usuwamy poprzednio dodaną parę i rzucamy dalej
-                es_it->second.erase(nv);
-                throw;
-            }
+            // Polegamy na silnej gwarancji kontenerów STL (map, set)
+            insert(key, value);
         } catch (...) {
             // Dodajemy usunięte wcześniej elementy
             es_it->second.insert(ov);
-            // sorted_by_value.insert(deleted_pair);
-
+            sorted_by_value.insert(deleted_pair);
             throw;
         }
-        */
     }
 
     // Metoda scalająca zawartość kolejki z podaną kolejką queue; ta operacja
