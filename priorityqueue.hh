@@ -246,7 +246,7 @@ class PriorityQueue {
             kit->second.find(e.second);  // może rzucać operator porównania
         assert(vit != kit->second.end());
         auto ait =  // nie rzuca
-            vit->second.find(e);
+            vit->second.begin();
         assert(ait != vit->second.end());
         auto bit = all_values.find(e.second);
         assert(bit != all_values.end());
@@ -271,7 +271,7 @@ class PriorityQueue {
             kit->second.find(e.second);  // może rzucać operator porównania
         assert(vit != kit->second.end());
         auto ait =  // nie rzuca
-            vit->second.find(e);
+            vit->second.begin();
         assert(ait != vit->second.end());
         auto bit = all_values.find(e.second);
         assert(bit != all_values.end());
@@ -358,21 +358,22 @@ class PriorityQueue {
     // wszystkie elementy z kolejki queue i wstawia je do kolejki *this
     // [O(size() + queue.size() * log (queue.size() + size()))]
     void merge(PriorityQueue<K, V>& queue) {
-        if (this == &queue) return;
+      if (this == &queue) return;
 
-        PriorityQueue<K, V> merged_queue = *this;
-        for (element e : queue.sorted_by_value) {
-            key_ptr k = e.first;
-            value_ptr v = e.second;
+      PriorityQueue<K, V> merged_queue = *this;
+      for (element e : queue.sorted_by_value) {
+          key_ptr k;
+          value_ptr v;
+          std::tie(k, v) = merged_queue.find_element(e.first, e.second);
 
-            merged_queue.sorted_by_value.insert(e);
-            merged_queue.sorted_by_key[k][v].insert(e);
-        }
+          merged_queue.sorted_by_value.insert(e);
+          merged_queue.sorted_by_key[k][v].insert(e);
+          merged_queue.all_values.insert(v);
+      }
+      queue.sorted_by_value.clear();
+      queue.sorted_by_key.clear();
 
-        queue.sorted_by_value.clear();
-        queue.sorted_by_key.clear();
-
-        this->swap(merged_queue);
+      this->swap(merged_queue);
     }
 
     // Metoda zamieniającą zawartość kolejki z podaną kolejką queue (tak jak
