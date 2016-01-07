@@ -262,14 +262,40 @@ class PriorityQueue {
     // [O(size() + queue.size() * log (queue.size() + size()))]
     void merge(PriorityQueue<K, V>& queue) {
         if (this == &queue) return;
-        for (element e : queue.sorted_by_value) {
-            key_ptr k = e.first;
-            value_ptr v = e.second;
-            sorted_by_value.insert(make_pair(k, v));
-            sorted_by_key[k].insert(v);
+
+        std::multiset<element, ValueKeyComparer> sorted_by_value_rollback;
+        std::map<key_ptr, std::multiset<value_ptr, ValueComparer>, KeyComparer>
+            sorted_by_key_rollback;
+
+        try {
+            for (element e : queue.sorted_by_value) {
+                key_ptr k = e.first;
+                value_ptr v = e.second;
+
+                auto by_value = make_pair(k, v);
+
+                if (sorted_by_value.insert(by_value)) {
+                    sorted_by_value_rollback.insert(by_value);
+                }
+                if (sorted_by_key[k].insert(v)) {
+                    sorted_by_key_rollback[k].insert(v);
+                }
+            }
+            queue.sorted_by_value.clear();
+            queue.sorted_by_key.clear();
+
+        } catch (...) {
+            // Wyczyść nowododane elementy w celu powrotu do stanu przed
+            // wykonaniem operacji merge()
+            for (auto& elem : sorted_by_value_rollback) {
+                sorted_by_value.erase(elem);
+            }
+            for (auto& elem : sorted_by_key_rollback) {
+                sorted_by_key.erase(elem);
+            }
+
+            throw PriorityQueueEmptyException();
         }
-        queue.sorted_by_value.clear();
-        queue.sorted_by_key.clear();
     }
 
     // Metoda zamieniającą zawartość kolejki z podaną kolejką queue (tak jak
