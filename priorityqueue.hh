@@ -2,6 +2,7 @@
 #define _JNP1_PRIORITYQUEUE_HH_
 
 #include <cassert>
+#include <iostream>
 #include <exception>
 #include <map>
 #include <memory>
@@ -237,7 +238,8 @@ class PriorityQueue {
         assert(!es_it->second.empty());
         auto ov = *(es_it->second.begin());
         es_it->second.erase(es_it->second.begin());
-        sorted_by_value.erase(make_pair(k, ov));
+        auto deleted_pair = make_pair(k, ov);
+        sorted_by_value.erase(deleted_pair);
 
         auto nv = std::make_shared<V>(value);
 
@@ -248,10 +250,14 @@ class PriorityQueue {
                 sorted_by_value.insert(make_pair(k, nv));
             } catch (...) {
                 // Usuwamy poprzednio dodaną parę i rzucamy dalej
-                es_it->second.insert(nv);
+                es_it->second.erase(nv);
                 throw;
             }
         } catch (...) {
+            // Dodajemy usunięte wcześniej elementy
+            es_it->second.insert(ov);
+            sorted_by_value.insert(deleted_pair);
+
             throw PriorityQueueInsertionException();
         }
     }
@@ -274,10 +280,11 @@ class PriorityQueue {
 
                 auto by_value = make_pair(k, v);
 
-                if (sorted_by_value.insert(by_value)) {
-                    sorted_by_value_rollback.insert(by_value);
-                }
-                if (sorted_by_key[k].insert(v)) {
+                sorted_by_value.insert(by_value);
+                sorted_by_value_rollback.insert(by_value);
+
+                auto insert_by_key = sorted_by_key[k].insert(v);
+                if (insert_by_key != sorted_by_key[k].end()) {
                     sorted_by_key_rollback[k].insert(v);
                 }
             }
@@ -290,8 +297,10 @@ class PriorityQueue {
             for (auto& elem : sorted_by_value_rollback) {
                 sorted_by_value.erase(elem);
             }
-            for (auto& elem : sorted_by_key_rollback) {
-                sorted_by_key.erase(elem);
+            for (auto elem : sorted_by_key_rollback) {
+                // TODO: Sprawdzic czy usuwane sa poprawne elementy/nie ma
+                // leakow
+                sorted_by_key[elem.first].erase(elem.second.begin());
             }
 
             throw PriorityQueueEmptyException();
