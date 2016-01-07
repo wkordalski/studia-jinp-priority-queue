@@ -50,8 +50,11 @@ class PriorityQueue {
     using value_ptr = std::shared_ptr<V>;
     using element = std::pair<key_ptr, value_ptr>;
 
+    template<class Compare = std::less<element>>
+    using element_set = std::multiset<element, Compare>;
+
    public:
-    using size_type = typename std::multiset<element>::size_type;
+    using size_type = typename element_set<>::size_type;
 
    protected:
     // Sorter classes
@@ -80,13 +83,15 @@ class PriorityQueue {
     };
 
    protected:
+    using elements = element_set<ValueKeyComparer>;
+    using value_map = std::map<value_ptr, element_set<>, ValueComparer>;
+    using key_map = std::map<key_ptr, value_map, KeyComparer>;
+
+   protected:
     // sortowanie po wartości, a potem po kluczu
-    std::multiset<element, ValueKeyComparer> sorted_by_value;
+    elements sorted_by_value;
     // sortowanie po kluczu, a potem po wartości, a na koniec po adresach (domyślnie)
-    std::map<key_ptr,
-						 std::map<value_ptr, std::multiset<element>, ValueComparer>,
-						 KeyComparer>
-        sorted_by_key;
+    key_map sorted_by_key;
 
    public:
     // TODO: czy konstruktory na prawdę potrzebują jakiegoś exception-safety?
@@ -142,10 +147,10 @@ class PriorityQueue {
         auto pair_by_value = make_pair(k, v);
 
 				// Iterators
-				decltype(sorted_by_value)::iterator it1;
-				decltype(sorted_by_key)::iterator it2;
-				std::map<value_ptr, std::multiset<element>, ValueComparer>::iterator it3;
-				std::multiset<element>::iterator it4;
+				typename elements::iterator it1;
+				typename key_map::iterator it2;
+        typename value_map::iterator it3;
+				typename element_set<>::iterator it4;
 				// If we have to remove them on fail.
 				bool al1 = false, al2 = false, al3 = false, al4 = false;
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
@@ -153,18 +158,20 @@ class PriorityQueue {
             it1 = sorted_by_value.insert(pair_by_value);
 						al1 = true;
 
-						std::tie(it2, al2) = sorted_by_key.try_emplace(k);
+						std::tie(it2, al2) =
+                sorted_by_key.insert(std::make_pair(k, value_map()));
 
-						std::tie(it3, al3) = it2->second.try_emplace(v);
-						
-						it4 = it3->insert(pair_by_value);
+						std::tie(it3, al3) =
+              it2->second.insert(std::make_pair(v, element_set<>()));
+
+						it4 = it3->second.insert(pair_by_value);
 						al4 = true;
         } catch (...) {
 						if(al4) it3->second.erase(it4);
 						if(al3) it2->second.erase(it3);
 						if(al2) sorted_by_key.erase(it2);
 						if(al1) sorted_by_value.erase(it1);
-            throw PriorityQueueInsertionException();
+            throw;
         }
     }
 
