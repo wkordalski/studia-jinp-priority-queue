@@ -8,12 +8,6 @@
 #include <memory>
 #include <set>
 
-// TODO: Add some messages in ctors to exceptions objects
-
-// Założenia:
-// 1. Nie obsługujemy wyjątku std::bad_alloc, który może zostać rzucony przez
-// std::make_shared()
-// 2.
 
 class PriorityQueueEmptyException : public std::exception {
    public:
@@ -372,6 +366,7 @@ class PriorityQueue {
       }
       queue.sorted_by_value.clear();
       queue.sorted_by_key.clear();
+      queue.all_values.clear();
 
       this->swap(merged_queue);
     }
