@@ -82,11 +82,11 @@ class PriorityQueue {
    protected:
     // sortowanie po wartości, a potem po kluczu
     std::multiset<element, ValueKeyComparer> sorted_by_value;
-    // sortowanie po kluczu, a potem po wartości, a na koniec po adresach (domyślnie)
+    // sortowanie po kluczu, a potem po wartości, a na koniec po adresach
+    // (domyślnie)
     std::map<key_ptr,
-						 std::map<value_ptr, std::multiset<element>, ValueComparer>,
-						 KeyComparer>
-        sorted_by_key;
+             std::map<value_ptr, std::multiset<element>, ValueComparer>,
+             KeyComparer> sorted_by_key;
 
    public:
     // TODO: czy konstruktory na prawdę potrzebują jakiegoś exception-safety?
@@ -141,29 +141,30 @@ class PriorityQueue {
 
         auto pair_by_value = make_pair(k, v);
 
-				// Iterators
-				decltype(sorted_by_value)::iterator it1;
-				decltype(sorted_by_key)::iterator it2;
-				std::map<value_ptr, std::multiset<element>, ValueComparer>::iterator it3;
-				std::multiset<element>::iterator it4;
-				// If we have to remove them on fail.
-				bool al1 = false, al2 = false, al3 = false, al4 = false;
+        // Iterators
+        decltype(sorted_by_value)::iterator it1;
+        decltype(sorted_by_key)::iterator it2;
+        std::map<value_ptr, std::multiset<element>, ValueComparer>::iterator
+            it3;
+        std::multiset<element>::iterator it4;
+        // If we have to remove them on fail.
+        bool al1 = false, al2 = false, al3 = false, al4 = false;
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
             it1 = sorted_by_value.insert(pair_by_value);
-						al1 = true;
+            al1 = true;
 
-						std::tie(it2, al2) = sorted_by_key.try_emplace(k);
+            std::tie(it2, al2) = sorted_by_key.try_emplace(k);
 
-						std::tie(it3, al3) = it2->second.try_emplace(v);
-						
-						it4 = it3->insert(pair_by_value);
-						al4 = true;
+            std::tie(it3, al3) = it2->second.try_emplace(v);
+
+            it4 = it3->insert(pair_by_value);
+            al4 = true;
         } catch (...) {
-						if(al4) it3->second.erase(it4);
-						if(al3) it2->second.erase(it3);
-						if(al2) sorted_by_key.erase(it2);
-						if(al1) sorted_by_value.erase(it1);
+            if (al4) it3->second.erase(it4);
+            if (al3) it2->second.erase(it3);
+            if (al2) sorted_by_key.erase(it2);
+            if (al1) sorted_by_value.erase(it1);
             throw PriorityQueueInsertionException();
         }
     }
@@ -209,14 +210,14 @@ class PriorityQueue {
         assert(kit != sorted_by_key.end());
         auto vit =
             kit->second.find(e.second);  // może rzucać operator porównania
-				assert(vit != kit->second.end());
-				auto ait =											 // nie rzuca
-						vit->second.find(e);
+        assert(vit != kit->second.end());
+        auto ait =  // nie rzuca
+            vit->second.find(e);
         assert(ait != vit->second.end());
 
         // Modyfikacje
-				vit->second.erase(ait);															// noexcept
-				if(vit->second.empty()) kit->second.erase(vit);     // noexcept
+        vit->second.erase(ait);                             // noexcept
+        if (vit->second.empty()) kit->second.erase(vit);    // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);  // noexcept
         sorted_by_value.erase(sorted_by_value.begin());     // noexcept
     }
@@ -230,13 +231,13 @@ class PriorityQueue {
         auto vit =
             kit->second.find(e.second);  // może rzucać operator porównania
         assert(vit != kit->second.end());
-				auto ait =											 // nie rzuca
-						vit->second.find(e);
+        auto ait =  // nie rzuca
+            vit->second.find(e);
         assert(ait != vit->second.end());
 
         // Modyfikacje
-				vit->second.erase(ait);															// noexcept
-				if (vit->second.empty()) kit->second.erase(vit);     // noexcept
+        vit->second.erase(ait);                              // noexcept
+        if (vit->second.empty()) kit->second.erase(vit);     // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);   // noexcept
         sorted_by_value.erase(prev(sorted_by_value.end()));  // noexcept
     }
@@ -251,7 +252,7 @@ class PriorityQueue {
     // sprawdza, czy do danej pary odwołuje się tylko jeden zestaw wskaźników
     // inaczej musi zaalokować nową parę (by modyfikacja nie dosięgła innych
     // par)
-		// TODO: zportować do nowych struktur danych
+    // TODO: zportować do nowych struktur danych
     void changeValue(const K& key, const V& value) {
         auto k = std::make_shared<K>(key);
 
@@ -290,13 +291,14 @@ class PriorityQueue {
     // usuwa
     // wszystkie elementy z kolejki queue i wstawia je do kolejki *this
     // [O(size() + queue.size() * log (queue.size() + size()))]
-		// TODO: sportować do nowych struktur danych
+    // TODO: sportować do nowych struktur danych
     void merge(PriorityQueue<K, V>& queue) {
         if (this == &queue) return;
 
         std::multiset<element, ValueKeyComparer> sorted_by_value_rollback;
-        std::map<key_ptr, std::multiset<value_ptr, ValueComparer>, KeyComparer>
-            sorted_by_key_rollback;
+        std::map<key_ptr,
+                 std::map<value_ptr, std::multiset<element>, ValueComparer>,
+                 KeyComparer> sorted_by_key_rollback;
 
         try {
             for (element e : queue.sorted_by_value) {
@@ -308,10 +310,19 @@ class PriorityQueue {
                 sorted_by_value.insert(by_value);
                 sorted_by_value_rollback.insert(by_value);
 
-                auto insert_by_key = sorted_by_key[k].insert(v);
-                if (insert_by_key != sorted_by_key[k].end()) {
-                    sorted_by_key_rollback[k].insert(v);
-                }
+                std::map<value_ptr, std::multiset<element>, ValueComparer>
+                    key_map;
+
+                auto insert_by_key = sorted_by_key.insert(k, key_map);
+
+                std::multiset<element> elem_set;
+                auto insert_key_map = sorted_by_key[k].insert(v, elem_set);
+
+                auto new_elem = make_pair(k, v);
+                sorted_by_key[k][v].insert(new_elem);
+                // TODO: Wg. mnie tu (przy rollbackach) nie trzeba rozpisywac [] 
+                // na inserty
+                sorted_by_key_rollback[k][v].insert(new_elem);
             }
             queue.sorted_by_value.clear();
             queue.sorted_by_key.clear();
@@ -323,8 +334,11 @@ class PriorityQueue {
                 sorted_by_value.erase(elem);
             }
             for (auto elem : sorted_by_key_rollback) {
+                // if(sorted_by_key.find(elem.first) != sorted_by_key.end()) {
+                // }
                 // TODO: Sprawdzic czy usuwane sa poprawne elementy/nie ma
                 // leakow
+                // TODO: Check if contains
                 sorted_by_key[elem.first].erase(elem.second.begin());
             }
 
