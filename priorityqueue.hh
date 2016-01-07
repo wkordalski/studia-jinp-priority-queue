@@ -129,16 +129,16 @@ class PriorityQueue {
         auto v = std::make_shared<V>(value);
 
         // Polegamy na silnej gwarancji kontenerów STL (map, multiset)
-        // try {
+        try {
             sorted_by_value.insert(make_pair(k, v));
-            // try {
+            try {
                 sorted_by_key[k].insert(v);
-            // } catch (...) {
-                // throw;
-            // }
-        // } catch (...) {
-            // throw("Could not insert key-value pair");
-        // }
+            } catch (...) {
+                throw;
+            }
+        } catch (...) {
+            throw("Could not insert key-value pair");
+        }
     }
 
     // Metody zwracające odpowiednio najmniejszą i największą wartość

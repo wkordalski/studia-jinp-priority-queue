@@ -59,8 +59,8 @@ int main(int argc, char* argv[]) {
         // throw_checker.insert(key); // Test dzialania w kont. STL (ma rzucac)
 
         // qMixed1.insert(keyNon, val);  // Ma rzucac
-        qMixed2.insert(key, valNon);  // Ma rzucac
-        // qNon.insert(keyNon, valNon);  // Nie ma rzucac
+        // qMixed2.insert(key, valNon);  // Ma rzucac
+        qNon.insert(keyNon, valNon);  // Nie ma rzucac
         // q.insert(key, val); // Ma rzucac (strong)
         // q.insert(1, 0); // Ma rzucac (strong)
     } catch (std::exception& ex) {
