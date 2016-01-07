@@ -92,6 +92,7 @@ int main() {
     S.insert(3, 9);
     S.insert(4, 16);
     S.merge(T);
+    std::cout << S.size() << std::endl;
     assert(S.size() == 4);
     assert(S.minValue() == 1);
     assert(S.maxValue() == 16);

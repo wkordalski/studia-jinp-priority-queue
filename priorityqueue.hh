@@ -31,14 +31,6 @@ class PriorityQueueNotFoundException : public std::exception {
     }
 };
 
-class PriorityQueueInsertionException : public std::exception {
-   public:
-    PriorityQueueInsertionException() = default;
-    virtual const char* what() const noexcept(true) {
-        return "Could not insert key-value pair";
-    }
-};
-
 template <typename K, typename V>
 class PriorityQueue {
    public:
@@ -227,6 +219,7 @@ class PriorityQueue {
         if (kit->second.empty()) sorted_by_key.erase(kit);  // noexcept
         sorted_by_value.erase(sorted_by_value.begin());     // noexcept
     }
+
     void deleteMax() {
         if (empty()) return;                              // noexcept
         const element& e = *prev(sorted_by_value.end());  // noexcept
@@ -268,16 +261,22 @@ class PriorityQueue {
             throw PriorityQueueNotFoundException();
 
         assert(!es_it->second.empty());
+        // auto ov = *(es_it->second.begin());
         auto ov = *(es_it->second.begin());
+        // std::shared_ptr<V> ov = es_it->second.begin();
+        auto deleted_pair = make_pair(k, std::make_shared<V>(ov));
+
+        if (sorted_by_value.find(deleted_pair) == sorted_by_value.end())
+            throw PriorityQueueNotFoundException();
+
         es_it->second.erase(es_it->second.begin());
-        auto deleted_pair = make_pair(k, ov);
-        sorted_by_value.erase(deleted_pair);
+        // sorted_by_value.erase(deleted_pair);
 
         auto nv = std::make_shared<V>(value);
 
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
-            es_it->second.insert(nv);
+            // es_it->second.insert(nv);
             try {
                 sorted_by_value.insert(make_pair(k, nv));
             } catch (...) {
@@ -288,9 +287,9 @@ class PriorityQueue {
         } catch (...) {
             // Dodajemy usunięte wcześniej elementy
             es_it->second.insert(ov);
-            sorted_by_value.insert(deleted_pair);
+            // sorted_by_value.insert(deleted_pair);
 
-            throw PriorityQueueInsertionException();
+            throw;
         }
         */
     }
@@ -299,48 +298,24 @@ class PriorityQueue {
     // usuwa
     // wszystkie elementy z kolejki queue i wstawia je do kolejki *this
     // [O(size() + queue.size() * log (queue.size() + size()))]
-    // TODO: sportować do nowych struktur danych
     void merge(PriorityQueue<K, V>& queue) {
         if (this == &queue) return;
 
-        elements sorted_by_value_rollback;
-        key_map sorted_by_key_rollback;
-
         try {
+            PriorityQueue<K, V> merged_queue = *this;
             for (element e : queue.sorted_by_value) {
                 key_ptr k = e.first;
                 value_ptr v = e.second;
 
-                auto by_value = make_pair(k, v);
-
-                sorted_by_value.insert(by_value);
-                sorted_by_value_rollback.insert(by_value);
-
-                value_map map_for_key;
-
-                auto insert_by_key = sorted_by_key.insert(k, map_for_key);
-
-                std::multiset<element> elem_set;
-                auto insert_key_map = sorted_by_key[k].insert(v, elem_set);
-
-                auto new_elem = make_pair(k, v);
-                sorted_by_key[k][v].insert(new_elem);
-                sorted_by_key_rollback[k][v].insert(new_elem);
+                merged_queue.sorted_by_value.insert(e);
+                merged_queue.sorted_by_key[k][v].insert(e);
             }
             queue.sorted_by_value.clear();
             queue.sorted_by_key.clear();
 
+            this->swap(merged_queue);
         } catch (...) {
-            // Wyczyść nowododane elementy w celu powrotu do stanu przed
-            // wykonaniem operacji merge()
-            for (auto& elem : sorted_by_value_rollback) {
-                sorted_by_value.erase(elem);
-            }
-            for (auto elem : sorted_by_key_rollback) {
-                sorted_by_key[elem.first].erase(elem.second.begin());
-            }
-
-            throw PriorityQueueEmptyException();
+            throw;
         }
     }
 
