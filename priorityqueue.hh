@@ -90,26 +90,25 @@ class PriorityQueue {
 
    protected:
     element find_element(const key_ptr& k, const value_ptr& v) {
-       using namespace std;
+        using namespace std;
 
-       // jeśli rzucą wyjątki, to trudno...
-       auto kit = sorted_by_key.find(k);
-       auto vit = all_values.find(v);
+        // jeśli rzucą wyjątki, to trudno...
+        auto kit = sorted_by_key.find(k);
+        auto vit = all_values.find(v);
 
-       auto kk = (kit == sorted_by_key.end())?k:(kit->first);
-       auto vv = (vit == all_values.end())?v:(*vit);
+        auto kk = (kit == sorted_by_key.end()) ? k : (kit->first);
+        auto vv = (vit == all_values.end()) ? v : (*vit);
 
-       return make_pair(kk, vv);
+        return make_pair(kk, vv);
     }
     element find_element(const K& key, const V& value) {
-      // w razie czego usuwanie polega na nic nie robieniu,
-      // bo nie posiadamy key i value na własność
-      auto k = std::make_shared<K>(key);
-      auto v = std::make_shared<V>(value);
+        // w razie czego usuwanie polega na nic nie robieniu,
+        // bo nie posiadamy key i value na własność
+        auto k = std::make_shared<K>(key);
+        auto v = std::make_shared<V>(value);
 
-      return find_element(k, v);
+        return find_element(k, v);
     }
-
 
    public:
     // TODO: czy konstruktory na prawdę potrzebują jakiegoś exception-safety?
@@ -168,14 +167,15 @@ class PriorityQueue {
 
         auto pair_by_value = make_pair(k, v);
 
-        // Iterators
+        // Iteratory
         typename elements::iterator it1;
         typename key_map::iterator it2;
         typename value_map::iterator it3;
         typename element_set<>::iterator it4;
         typename value_set::iterator it5;
-        // If we have to remove them on fail.
+
         bool al1 = false, al2 = false, al3 = false, al4 = false, al5 = false;
+
         // Polegamy na silnej gwarancji kontenerów STL (map, set)
         try {
             it1 = sorted_by_value.insert(pair_by_value);
@@ -360,24 +360,19 @@ class PriorityQueue {
     void merge(PriorityQueue<K, V>& queue) {
         if (this == &queue) return;
 
-        try {
-            PriorityQueue<K, V> merged_queue = *this;
-            for (element e : queue.sorted_by_value) {
-                key_ptr k;
-                value_ptr v;
-                std::tie(k, v) = merged_queue.find_element(e.first, e.second);
+        PriorityQueue<K, V> merged_queue = *this;
+        for (element e : queue.sorted_by_value) {
+            key_ptr k = e.first;
+            value_ptr v = e.second;
 
-                merged_queue.sorted_by_value.insert(e);
-                merged_queue.sorted_by_key[k][v].insert(e);
-                merged_queue.all_values.insert(v);
-            }
-            queue.sorted_by_value.clear();
-            queue.sorted_by_key.clear();
-
-            this->swap(merged_queue);
-        } catch (...) {
-            throw;
+            merged_queue.sorted_by_value.insert(e);
+            merged_queue.sorted_by_key[k][v].insert(e);
         }
+
+        queue.sorted_by_value.clear();
+        queue.sorted_by_key.clear();
+
+        this->swap(merged_queue);
     }
 
     // Metoda zamieniającą zawartość kolejki z podaną kolejką queue (tak jak
