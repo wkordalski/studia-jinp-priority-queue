@@ -78,12 +78,33 @@ class PriorityQueue {
     using elements = element_set<ValueKeyComparer>;
     using value_map = std::map<value_ptr, element_set<>, ValueComparer>;
     using key_map = std::map<key_ptr, value_map, KeyComparer>;
+    using value_set = std::set<value_ptr, ValueComparer>;
 
     // sortowanie po wartości, a potem po kluczu
     elements sorted_by_value;
     // sortowanie po kluczu, a potem po wartości, a na koniec po adresach
     // (domyślnie)
     key_map sorted_by_key;
+
+    value_set all_values;
+
+   protected:
+    element find_element(const K& key, const V& value) {
+      using namespace std;
+      // w razie czego usuwanie polega na nic nie robieniu,
+      // bo nie posiadamy key i value na własność
+      auto k = key_ptr(&key, [](K *k) {});
+      auto v = value_ptr(&value, [](V *v) {});
+
+      // jeśli rzucą wyjątki, to trudno...
+      auto kit = sorted_by_key.find(k);
+      auto vit = all_values.find(v);
+
+      auto kk = (kit == sorted_by_key.end())?(make_shared<K>(key)):(kit->first);
+      auto vv = (vit == all_values.end())?(make_shared<V>(value)):(*vit);
+
+      return make_pair(kk, vv);
+    }
 
    public:
     // TODO: czy konstruktory na prawdę potrzebują jakiegoś exception-safety?
@@ -100,7 +121,8 @@ class PriorityQueue {
     // Konstruktor przenoszący [O(1)]
     PriorityQueue(PriorityQueue<K, V>&& queue) noexcept
         : sorted_by_value(std::move(queue.sorted_by_value)),
-          sorted_by_key(std::move(queue.sorted_by_key)) {}
+          sorted_by_key(std::move(queue.sorted_by_key)),
+          all_values(std::move(queue.all_values)) {}
 
     // Operator przypisania [O(queue.size()) dla użycia P = Q, a O(1) dla użycia
     // P = move(Q)]
@@ -118,6 +140,7 @@ class PriorityQueue {
             std::move(queue.sorted_by_value);  // powinno być noexcept (move)
         this->sorted_by_key =
             std::move(queue.sorted_by_key);  // powinno być noexcept (move)
+        this->all_values = std::move(queue.all_values);
         // jest noexcept bo kopiowanie shared_ptr jest noexcept
         return *this;
     }
@@ -133,8 +156,9 @@ class PriorityQueue {
     // [O(log size())] (dopuszczamy możliwość występowania w kolejce wielu
     // par o tym samym kluczu)
     void insert(const K& key, const V& value) {
-        auto k = std::make_shared<K>(key);
-        auto v = std::make_shared<V>(value);
+        key_ptr k;
+        value_ptr v;
+        std::tie(k, v) = find_element(key, value);
 
         auto pair_by_value = make_pair(k, v);
 
