@@ -89,22 +89,27 @@ class PriorityQueue {
     value_set all_values;
 
    protected:
+    element find_element(const key_ptr& k, const value_ptr& v) {
+       using namespace std;
+
+       // jeśli rzucą wyjątki, to trudno...
+       auto kit = sorted_by_key.find(k);
+       auto vit = all_values.find(v);
+
+       auto kk = (kit == sorted_by_key.end())?k:(kit->first);
+       auto vv = (vit == all_values.end())?v:(*vit);
+
+       return make_pair(kk, vv);
+    }
     element find_element(const K& key, const V& value) {
-      using namespace std;
       // w razie czego usuwanie polega na nic nie robieniu,
       // bo nie posiadamy key i value na własność
-      auto k = make_shared<K>(key);
-      auto v = make_shared<V>(value);
+      auto k = std::make_shared<K>(key);
+      auto v = std::make_shared<V>(value);
 
-      // jeśli rzucą wyjątki, to trudno...
-      auto kit = sorted_by_key.find(k);
-      auto vit = all_values.find(v);
-
-      auto kk = (kit == sorted_by_key.end())?k:(kit->first);
-      auto vv = (vit == all_values.end())?v:(*vit);
-
-      return make_pair(kk, vv);
+      return find_element(k, v);
     }
+
 
    public:
     // TODO: czy konstruktory na prawdę potrzebują jakiegoś exception-safety?
@@ -230,6 +235,7 @@ class PriorityQueue {
     void deleteMin() {
         if (empty()) return;                            // noexcept
         const element& e = *(sorted_by_value.begin());  // noexcept
+        value_ptr v = e.second;
 
         auto kit =
             sorted_by_key.find(e.first);  // może rzucać operator porównania
@@ -240,17 +246,24 @@ class PriorityQueue {
         auto ait =  // nie rzuca
             vit->second.find(e);
         assert(ait != vit->second.end());
+        auto bit = all_values.find(e.second);
+        assert(bit != all_values.end());
 
         // Modyfikacje
         vit->second.erase(ait);                             // noexcept
         if (vit->second.empty()) kit->second.erase(vit);    // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);  // noexcept
         sorted_by_value.erase(sorted_by_value.begin());     // noexcept
+        // porównuję wskaźniki - noexcept
+        if(sorted_by_value.size() == 0 || *(sorted_by_value.begin()) != v) {
+          all_values.erase(bit);
+        }
     }
 
     void deleteMax() {
         if (empty()) return;                              // noexcept
         const element& e = *prev(sorted_by_value.end());  // noexcept
+        value_ptr v = e.second;
 
         auto kit =
             sorted_by_key.find(e.first);  // może rzucać operator porównania
@@ -261,12 +274,17 @@ class PriorityQueue {
         auto ait =  // nie rzuca
             vit->second.find(e);
         assert(ait != vit->second.end());
+        auto bit = all_values.find(e.second);
+        assert(bit != all_values.end());
 
         // Modyfikacje
         vit->second.erase(ait);                              // noexcept
         if (vit->second.empty()) kit->second.erase(vit);     // noexcept
         if (kit->second.empty()) sorted_by_key.erase(kit);   // noexcept
         sorted_by_value.erase(prev(sorted_by_value.end()));  // noexcept
+        if(sorted_by_value.size()==0 || *(prev(sorted_by_value.begin())) != v) {
+          all_values.erase(bit);
+        }
     }
 
     // Metoda zmieniająca dotychczasową wartość przypisaną kluczowi key na nową
@@ -332,11 +350,13 @@ class PriorityQueue {
         try {
             PriorityQueue<K, V> merged_queue = *this;
             for (element e : queue.sorted_by_value) {
-                key_ptr k = e.first;
-                value_ptr v = e.second;
+                key_ptr k;
+                value_ptr v;
+                std::tie(k, v) = merged_queue.find_element(e.first, e.second);
 
                 merged_queue.sorted_by_value.insert(e);
                 merged_queue.sorted_by_key[k][v].insert(e);
+                merged_queue.all_values.insert(v);
             }
             queue.sorted_by_value.clear();
             queue.sorted_by_key.clear();
@@ -354,6 +374,7 @@ class PriorityQueue {
         if (this == &queue) return;
         this->sorted_by_value.swap(queue.sorted_by_value);
         this->sorted_by_key.swap(queue.sorted_by_key);
+        this->all_values.swap(queue.all_values);
     }
 
     friend void swap(PriorityQueue<K, V>& lhs,
